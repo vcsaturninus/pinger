@@ -42,9 +42,6 @@ services:
       context: .
       dockerfile: Dockerfile
     networks:
-      # access to both networks so we can ping. NOTE: the server only responds
-      # and should work with only access to its own network due to how NATs
-      # work.
       - testnet
     cap_add:
       - NET_ADMIN
@@ -73,14 +70,3 @@ networks:
         - subnet: 10.0.0.0/24
           ip_range: 10.0.0.0/24
           gateway: 10.0.0.1
-
-
-            #  client_net:
-            #    ipam:
-            #      driver: default
-            #      config:
-            #        - subnet: 10.1.1.0/24
-            #          ip_range: 10.1.1.0/24
-            #          gateway: 10.1.1.1
-            #      # use specific name for the interface to what is expected in the
-            #      # tc scripts
