@@ -1,0 +1,86 @@
+# See
+# https://github.com/compose-spec/compose-spec/blob/master/spec.md
+# https://github.com/compose-spec/compose-spec/blob/master/build.md
+#
+
+version: '3'
+
+services:
+
+  pingserver:
+    container_name: pingserver
+    tty: true
+    # build image from Dockerfile in the CWD
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      # p1:p2 -> expose port p1 for connections; this will forward
+      # traffic to port p2 inside the container
+      - "$SERVER_PORT:$SERVER_PORT"
+    networks:
+      testnet:
+        ipv4_address: $SERVER_ADDR
+    cap_add:
+      - NET_ADMIN
+    environment:
+      # propagate the variables defined in .env to the container at runtime
+      # i.e. when *running* the container.
+      - mode=server
+      - SERVER_PORT=$SERVER_PORT
+      - L4PROTO=$L4PROTO
+      - tc_scripts_dir=$TC_SCRIPTS_DIR
+    volumes:
+      - type: bind
+        source: ./tc_scripts
+        target: $TC_SCRIPTS_DIR
+
+  pingclient:
+    container_name: pingclient
+    tty: true
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      # access to both networks so we can ping. NOTE: the server only responds
+      # and should work with only access to its own network due to how NATs
+      # work.
+      - testnet
+    cap_add:
+      - NET_ADMIN
+    environment:
+      # propagate the variables defined in .env to the container at runtime
+      # i.e. when *running* the container.
+      - mode=client
+      - SERVER_ADDR=$SERVER_ADDR
+      - SERVER_PORT=$SERVER_PORT
+      - L4PROTO=$L4PROTO
+      - tc_scripts_dir=$TC_SCRIPTS_DIR
+    volumes:
+      - type: bind
+        source: ./tc_scripts
+        target: $TC_SCRIPTS_DIR
+
+networks:
+  testnet:
+    driver_opts:
+      # use specific name for the interface to what is expected in the
+      # tc scripts
+      com.docker.network.bridge.name: eth0
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.0.0/24
+          ip_range: 10.0.0.0/24
+          gateway: 10.0.0.1
+
+
+            #  client_net:
+            #    ipam:
+            #      driver: default
+            #      config:
+            #        - subnet: 10.1.1.0/24
+            #          ip_range: 10.1.1.0/24
+            #          gateway: 10.1.1.1
+            #      # use specific name for the interface to what is expected in the
+            #      # tc scripts
